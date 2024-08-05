@@ -1,0 +1,9 @@
+<launch>
+
+    <!-- node for connecting to navic -->
+    <node name="navic_node" pkg="navic_driver" type="navic_node" output="screen" />
+  
+    <!-- script for reading vive postion and publishing command to Navic-->
+    <node pkg="plate_inspection" name="plate_inspection" type="BAEdemo.py" />
+  
+  </launch>
