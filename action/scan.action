@@ -1,0 +1,20 @@
+# This is an action definition file, which has three parts: the goal, the
+# result, and the feedback.
+#
+# Part 1: the goal, to be sent by the client
+#
+# The amount of time we want to wait
+uint8 scan_start
+---
+# Part 2: the result, to be sent by the server upon completion
+#
+# How much time we waited
+uint8 scan_complete
+# How many updates we provided along the way
+uint32 updates_sent
+---
+# Part 3: the feedback, to be sent periodically by the server during
+# execution.
+#
+# The percentage of the scan that has been completed
+uint8 percent_scan_complete
