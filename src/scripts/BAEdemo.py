@@ -18,26 +18,30 @@ from plate_inspection.msg import scanAction, scanGoal, scanResult, scanFeedback
 import time
 import numpy
 import math
+from geometry_msgs.msg import Pose
 
 class RobotController:
     def __init__(self):
         # Set up subscribers
         self.vive_pose_plate = rospy.Subscriber("/vive/LHR_6727695C_pose_filt", PoseWithCovarianceStamped , self.vive_plate_callback, queue_size=1)        
-        self.vive_pose_navic = rospy.Subscriber("/vive/LHR_EA821C01_pose_filt", PoseWithCovarianceStamped , self.AtoB_navic_callback, queue_size=1)
+        self.vive_pose_navic = rospy.Subscriber("/vive/LHR_EA821C01_pose_filt", PoseWithCovarianceStamped , self.waypoint_navic_callback, queue_size=1)
         # Set up tf listeners
         self.tfBuffer = tf2_ros.Buffer()
         self.listener = tf2_ros.TransformListener(self.tfBuffer)
         # Set up publishers
         self.navic_rel_plate = rospy.Publisher("navic_rel_plate", PoseWithCovarianceStamped, queue_size=1)
         self.navic_publisher = rospy.Publisher("/scanlink_control", ScanlinkControl, queue_size=1)
+        self.probe_wp_publisher = rospy.Publisher("probe_target", PoseWithCovarianceStamped, queue_size=1)
         # Set up subscriber definition & rate
         self.timer_navic_update = rospy.Timer(rospy.Duration(1.0/25.0), self.update_speed_callback)
-
         # Initialise variables
         self.speed = 0
         self.steer = 0
 
+        self.probe_wp_broadcaster = tf2_ros.TransformBroadcaster()
+        self.probe_target_transformStamped = geometry_msgs.msg.TransformStamped()
         self.trans = TransformStamped()
+        self.trans_probe = TransformStamped()
 
         self.steer_ratio = 100
         self.speed_ratio = 1000    
@@ -49,11 +53,17 @@ class RobotController:
 
         self.waypoints_generated = 0
         self.navic_wp = []
+        self.probe_wp = []
 
         self.count = 0
 
         self.insp_stage = 1
         self.stop = 0
+
+        # Create action client
+        self.act_client = actionlib.SimpleActionClient('scan', scanAction)
+        self.act_client.wait_for_server()
+        self.scan_start = Pose()
 
     def vive_plate_callback(self, input):
         self.plate_pose = input
@@ -87,7 +97,24 @@ class RobotController:
             if all(self.plate_pose_buffer[0]) == all(self.plate_pose_buffer[1]) and self.waypoints_generated == 0:
                 self.generate_waypoints(self, self.plate_pose_buffer[1])
 
-    def AtoB_navic_callback(self, input):
+        if self.waypoints_generated == 1 and self.insp_stage < 4:
+            # Publish the current probe target frame
+            self.probe_target_transformStamped.header.stamp = rospy.Time.now()
+            self.probe_target_transformStamped.header.frame_id = "LHR_6727695C_pose_filt"
+            self.probe_target_transformStamped.child_frame_id = "probe_target"
+
+            probe_wp_q = quaternion_from_euler(self.probe_wp[-self.insp_stage][3], self.probe_wp[-self.insp_stage][4], self.probe_wp[-self.insp_stage][5])
+
+            self.probe_target_transformStamped.transform.translation.x = float(self.probe_wp[-self.insp_stage][0]/1000)
+            self.probe_target_transformStamped.transform.translation.y = float(self.probe_wp[-self.insp_stage][1]/1000)
+            self.probe_target_transformStamped.transform.translation.z = float(self.probe_wp[-self.insp_stage][2]/1000)
+
+            self.probe_target_transformStamped.transform.rotation.x = 0#probe_wp_q[0]
+            self.probe_target_transformStamped.transform.rotation.y = 0#probe_wp_q[1]
+            self.probe_target_transformStamped.transform.rotation.z = 0.707#probe_wp_q[2]
+            self.probe_target_transformStamped.transform.rotation.w = 0.707#probe_wp_q[3]
+
+    def waypoint_navic_callback(self, input):
         if self.count >= 10:
             self.trans = self.tfBuffer.lookup_transform("LHR_6727695C_pose_filt", "navic_control_link", rospy.Time())
             # print(str(self.trans))
@@ -127,7 +154,9 @@ class RobotController:
 
                 if navic_x > self.navic_wp[-self.insp_stage][0] and self.stop == 0:
                     self.speed = 0.5
-                    self.steer = theta_err/-20
+                    if abs(navic_x - self.navic_wp[-self.insp_stage][0]) < 100:
+                        self.speed = 0.2
+                    self.steer = theta_err/-15
                     if abs(self.steer) > 0.8:
                         if self.steer < 0:
                             self.steer = -0.8
@@ -145,17 +174,44 @@ class RobotController:
                 else:
                     # print("Waypoint " + str(self.insp_stage) + " reached... Pausing for 3s.")
                     rospy.logdebug("Waypoint " + str(self.insp_stage) + " reached... Pausing for 3s.")
+
+                    # Calculate transform between Meca base and probe start waypoint, this is fed through to the robot controller                    
+                    self.trans_probe = self.tfBuffer.lookup_transform("meca_base_link", "probe_target", rospy.Time())
+                    target_eul = euler_from_quaternion([
+                        self.trans_probe.transform.rotation.x,
+                        self.trans_probe.transform.rotation.y,
+                        self.trans_probe.transform.rotation.z,
+                        self.trans_probe.transform.rotation.w,
+                        ])
                     
                     # Send Action to conduct scan
                     goal = scanGoal()
-                    goal.scan_start = 1
-                    client.send_goal(goal)
-                    client.wait_for_result()
-                    print('Scan complete')
-                    goal.scan_start = 0
+
+                    # probe_target_pose = [
+                    #     self.trans_probe.transform.translation.x*1000, # Convert from m to mm
+                    #     self.trans_probe.transform.translation.y*1000,
+                    #     self.trans_probe.transform.translation.z*1000,
+                    #     target_eul[0]*180/math.pi, # Convert from rad to deg
+                    #     target_eul[1]*180/math.pi,
+                    #     target_eul[2]*180/math.pi
+                    #     ]
+                    probe_target_pose = [
+                        -125, # Convert from m to mm
+                        self.trans_probe.transform.translation.y*1000,
+                        self.trans_probe.transform.translation.z*1000,
+                        -90, # Convert from rad to deg
+                        -1,
+                        -90
+                        ]
+                    goal.scan_start = probe_target_pose
+                    self.act_client.send_goal(goal)
+                    self.act_client.wait_for_result()
+                    rospy.logdebug("Scan " + str(self.insp_stage) + " complete.")
+                    # goal.scan_start = 0
+
                     # Scan Complete
-                    
-                    # rospy.sleep(3)
+
+                    rospy.sleep(3)
                     self.insp_stage += 1
                     self.stop = 0
             elif self.insp_stage == 4:
@@ -176,6 +232,7 @@ class RobotController:
         for i in range(1,4,1):
             if i == 1:
                 self.navic_wp = [+240+260*(i-1), -419-138.3, 0, 0, 0, 180]
+                self.probe_wp = [+240+100+260*(i-1), -180, 0, 0, 0, 90]
             else:
                 self.navic_wp = numpy.vstack(
                     [
@@ -190,10 +247,25 @@ class RobotController:
                         ]
                     ]
                 )
+                self.probe_wp = numpy.vstack(
+                [
+                    self.probe_wp,
+                    [
+                        +240+100+260*(i-1), 
+                        -180, 
+                        0, 
+                        0, 
+                        0, 
+                        90
+                    ]
+                ]
+                )
         self.waypoints_generated = 1
         #while not rospy.is_shutdown():
         
     def update_speed_callback(self, timer_crawler):
+        if self.waypoints_generated == 1:
+            self.probe_wp_broadcaster.sendTransform(self.probe_target_transformStamped)
         scanlink_message = ScanlinkControl()
         scanlink_message.speed = int(self.speed * self.speed_ratio)
         scanlink_message.steer = int(self.steer * self.steer_ratio)
@@ -205,6 +277,4 @@ if __name__ == '__main__':
     robot = RobotController() 
     rospy.spin()
 
-    rospy.init_node('scan_action_client')
-    client = actionlib.SimpleActionClient('scan', scanAction)
-    client.wait_for_server()
+
