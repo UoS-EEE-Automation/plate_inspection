@@ -4,7 +4,7 @@
 # Part 1: the goal, to be sent by the client
 #
 # The amount of time we want to wait
-uint8 scan_start
+float32[] scan_start
 ---
 # Part 2: the result, to be sent by the server upon completion
 #
