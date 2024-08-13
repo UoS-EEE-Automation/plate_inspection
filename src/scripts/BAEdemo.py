@@ -10,6 +10,7 @@ from geometry_msgs.msg import Twist, TwistStamped
 # import tf functionality
 import tf2_ros
 from tf.transformations import euler_from_quaternion, quaternion_from_euler
+import transforms3d
 from tf2_ros import TransformStamped
 import geometry_msgs.msg
 import actionlib
@@ -109,10 +110,10 @@ class RobotController:
             self.probe_target_transformStamped.transform.translation.y = float(self.probe_wp[-self.insp_stage][1]/1000)
             self.probe_target_transformStamped.transform.translation.z = float(self.probe_wp[-self.insp_stage][2]/1000)
 
-            self.probe_target_transformStamped.transform.rotation.x = 0#probe_wp_q[0]
-            self.probe_target_transformStamped.transform.rotation.y = 0#probe_wp_q[1]
-            self.probe_target_transformStamped.transform.rotation.z = 0.707#probe_wp_q[2]
-            self.probe_target_transformStamped.transform.rotation.w = 0.707#probe_wp_q[3]
+            self.probe_target_transformStamped.transform.rotation.x = 0#probe_wp_q[1]
+            self.probe_target_transformStamped.transform.rotation.y = 0#probe_wp_q[2]
+            self.probe_target_transformStamped.transform.rotation.z = 0.707#probe_wp_q[3]
+            self.probe_target_transformStamped.transform.rotation.w = 0.707#probe_wp_q[0]
 
     def waypoint_navic_callback(self, input):
         if self.count >= 10:
@@ -177,11 +178,19 @@ class RobotController:
 
                     # Calculate transform between Meca base and probe start waypoint, this is fed through to the robot controller                    
                     self.trans_probe = self.tfBuffer.lookup_transform("meca_base_link", "probe_target", rospy.Time())
-                    target_eul = euler_from_quaternion([
+                    other_eul = transforms3d.euler.quat2euler(
+                        [
+                        self.trans_probe.transform.rotation.w,
                         self.trans_probe.transform.rotation.x,
                         self.trans_probe.transform.rotation.y,
                         self.trans_probe.transform.rotation.z,
+                        ]
+                    )
+                    target_eul = euler_from_quaternion([
                         self.trans_probe.transform.rotation.w,
+                        self.trans_probe.transform.rotation.x,
+                        self.trans_probe.transform.rotation.y,
+                        self.trans_probe.transform.rotation.z,
                         ])
                     
                     # Send Action to conduct scan
