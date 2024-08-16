@@ -21,6 +21,7 @@ import numpy
 import math
 from geometry_msgs.msg import Pose
 
+
 class RobotController:
     def __init__(self):
         # Set up subscribers
@@ -43,6 +44,7 @@ class RobotController:
         self.probe_target_transformStamped = geometry_msgs.msg.TransformStamped()
         self.trans = TransformStamped()
         self.trans_probe = TransformStamped()
+        self.trans_probe_2 = TransformStamped()
 
         self.steer_ratio = 100
         self.speed_ratio = 1000    
@@ -104,21 +106,24 @@ class RobotController:
             self.probe_target_transformStamped.header.frame_id = "LHR_6727695C_pose_filt"
             self.probe_target_transformStamped.child_frame_id = "probe_target"
 
-            probe_wp_q = quaternion_from_euler(self.probe_wp[-self.insp_stage][3], self.probe_wp[-self.insp_stage][4], self.probe_wp[-self.insp_stage][5])
+            probe_wp_q = transforms3d.euler.euler2quat(
+                self.probe_wp[-self.insp_stage][3]*math.pi/180, 
+                self.probe_wp[-self.insp_stage][4]*math.pi/180, 
+                self.probe_wp[-self.insp_stage][5]*math.pi/180
+                )
 
             self.probe_target_transformStamped.transform.translation.x = float(self.probe_wp[-self.insp_stage][0]/1000)
             self.probe_target_transformStamped.transform.translation.y = float(self.probe_wp[-self.insp_stage][1]/1000)
             self.probe_target_transformStamped.transform.translation.z = float(self.probe_wp[-self.insp_stage][2]/1000)
 
-            self.probe_target_transformStamped.transform.rotation.x = 0#probe_wp_q[1]
-            self.probe_target_transformStamped.transform.rotation.y = 0#probe_wp_q[2]
-            self.probe_target_transformStamped.transform.rotation.z = 0.707#probe_wp_q[3]
-            self.probe_target_transformStamped.transform.rotation.w = 0.707#probe_wp_q[0]
+            self.probe_target_transformStamped.transform.rotation.w = probe_wp_q[0]
+            self.probe_target_transformStamped.transform.rotation.x = probe_wp_q[1]
+            self.probe_target_transformStamped.transform.rotation.y = probe_wp_q[2]
+            self.probe_target_transformStamped.transform.rotation.z = probe_wp_q[3]
 
     def waypoint_navic_callback(self, input):
         if self.count >= 10:
             self.trans = self.tfBuffer.lookup_transform("LHR_6727695C_pose_filt", "navic_control_link", rospy.Time())
-            # print(str(self.trans))
         else:
             self.count += 1
             return
@@ -164,7 +169,7 @@ class RobotController:
                         elif self.steer > 0:
                             self.steer = 0.8
                     # print("Moving forward...   Steer: " + str(self.steer*self.steer_ratio))
-                    rospy.logdebug("Moving forward...   Steer: " + str(self.steer*self.steer_ratio))
+                    rospy.logdebug("Moving forward...   Speed: " + str(self.speed*self.speed_ratio) + "   Steer: " + str(self.steer*self.steer_ratio))
 
                 elif navic_x <= self.navic_wp[-self.insp_stage][0] and self.stop == 0:
                     self.speed = 0
@@ -174,44 +179,43 @@ class RobotController:
                     rospy.logdebug("Stopping...")
                 else:
                     # print("Waypoint " + str(self.insp_stage) + " reached... Pausing for 3s.")
-                    rospy.logdebug("Waypoint " + str(self.insp_stage) + " reached... Pausing for 3s.")
+                    rospy.logdebug("Waypoint " + str(self.insp_stage) + " reached... Approaching sample....")
 
                     # Calculate transform between Meca base and probe start waypoint, this is fed through to the robot controller                    
-                    self.trans_probe = self.tfBuffer.lookup_transform("meca_base_link", "probe_target", rospy.Time())
-                    other_eul = transforms3d.euler.quat2euler(
+                    self.trans_probe = self.tfBuffer.lookup_transform("probe_target", "meca_base_link", rospy.Time())
+                    self.trans_probe_2 = self.tfBuffer.lookup_transform("meca_base_link", "probe_target", rospy.Time())
+                    # rospy.logdebug(self.trans_probe)
+                    target_eul = transforms3d.euler.quat2euler(
                         [
                         self.trans_probe.transform.rotation.w,
                         self.trans_probe.transform.rotation.x,
                         self.trans_probe.transform.rotation.y,
-                        self.trans_probe.transform.rotation.z,
+                        self.trans_probe.transform.rotation.z
                         ]
                     )
-                    target_eul = euler_from_quaternion([
-                        self.trans_probe.transform.rotation.w,
-                        self.trans_probe.transform.rotation.x,
-                        self.trans_probe.transform.rotation.y,
-                        self.trans_probe.transform.rotation.z,
-                        ])
-                    
+                    target_eul = numpy.array(target_eul)*-180/math.pi
+
                     # Send Action to conduct scan
                     goal = scanGoal()
 
+                    probe_target_pose = [
+                        self.trans_probe_2.transform.translation.x*1000-20, # Convert from m to mm
+                        self.trans_probe_2.transform.translation.y*1000,
+                        self.trans_probe_2.transform.translation.z*1000,
+                        target_eul[0], # Convert from rad to deg
+                        target_eul[1],
+                        target_eul[2]
+                        ]
+
                     # probe_target_pose = [
-                    #     self.trans_probe.transform.translation.x*1000, # Convert from m to mm
+                    #     self.trans_probe.transform.translation.x*1000-20,#-125, # Convert from m to mm
                     #     self.trans_probe.transform.translation.y*1000,
                     #     self.trans_probe.transform.translation.z*1000,
-                    #     target_eul[0]*180/math.pi, # Convert from rad to deg
-                    #     target_eul[1]*180/math.pi,
-                    #     target_eul[2]*180/math.pi
+                    #     -90, # Convert from rad to deg
+                    #     0,
+                    #     -90
                     #     ]
-                    probe_target_pose = [
-                        -125, # Convert from m to mm
-                        self.trans_probe.transform.translation.y*1000,
-                        self.trans_probe.transform.translation.z*1000,
-                        -90, # Convert from rad to deg
-                        -1,
-                        -90
-                        ]
+                    
                     goal.scan_start = probe_target_pose
                     self.act_client.send_goal(goal)
                     self.act_client.wait_for_result()
@@ -231,6 +235,10 @@ class RobotController:
                     self.steer = 0
                 elif navic_x >= 1100:
                     # print("Inspection Complete...")
+                    self.speed = 0
+                    self.steer = 0
+                    self.insp_stage += 1
+            elif self.insp_stage == 5:
                     rospy.logdebug("Inspection Complete...")
                     self.speed = 0
                     self.steer = 0
@@ -241,7 +249,7 @@ class RobotController:
         for i in range(1,4,1):
             if i == 1:
                 self.navic_wp = [+240+260*(i-1), -419-138.3, 0, 0, 0, 180]
-                self.probe_wp = [+240+100+260*(i-1), -180, 0, 0, 0, 90]
+                self.probe_wp = [+240-53.19-20+125+260*(i-1), -180, 0, 0, 0, 90]
             else:
                 self.navic_wp = numpy.vstack(
                     [
@@ -260,7 +268,7 @@ class RobotController:
                 [
                     self.probe_wp,
                     [
-                        +240+100+260*(i-1), 
+                        +240-53.19-20+125+260*(i-1), 
                         -180, 
                         0, 
                         0, 
