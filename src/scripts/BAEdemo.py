@@ -123,6 +123,26 @@ class RobotController:
             self.probe_target_transformStamped.transform.rotation.y = probe_wp_q[2]
             self.probe_target_transformStamped.transform.rotation.z = probe_wp_q[3]
 
+            # Publish the current navic target frame
+            self.navic_target_transformStamped.header.stamp = rospy.Time.now()
+            self.navic_target_transformStamped.header.frame_id = "LHR_6727695C_pose_filt"
+            self.navic_target_transformStamped.child_frame_id = "navic_target"
+
+            navic_wp_q = transforms3d.euler.euler2quat(
+                self.navic_wp[-self.insp_stage][3]*math.pi/180, 
+                self.navic_wp[-self.insp_stage][4]*math.pi/180, 
+                self.navic_wp[-self.insp_stage][5]*math.pi/180
+                )
+
+            self.navic_target_transformStamped.transform.translation.x = float(self.navic_wp[-self.insp_stage][0]/1000)
+            self.navic_target_transformStamped.transform.translation.y = float(self.navic_wp[-self.insp_stage][1]/1000)
+            self.navic_target_transformStamped.transform.translation.z = float(self.navic_wp[-self.insp_stage][2]/1000)
+
+            self.navic_target_transformStamped.transform.rotation.w = navic_wp_q[0]
+            self.navic_target_transformStamped.transform.rotation.x = navic_wp_q[1]
+            self.navic_target_transformStamped.transform.rotation.y = navic_wp_q[2]
+            self.navic_target_transformStamped.transform.rotation.z = navic_wp_q[3]
+
     def waypoint_navic_callback(self, input):
         if self.count >= 10:
             self.trans = self.tfBuffer.lookup_transform("LHR_6727695C_pose_filt", "navic_control_link", rospy.Time())
@@ -285,6 +305,7 @@ class RobotController:
     def update_speed_callback(self, timer_crawler):
         if self.waypoints_generated == 1:
             self.probe_wp_broadcaster.sendTransform(self.probe_target_transformStamped)
+            self.navic_wp_broadcaster.sendTransform(self.navic_target_transformStamped)
         scanlink_message = ScanlinkControl()
         scanlink_message.speed = int(self.speed * self.speed_ratio)
         scanlink_message.steer = int(self.steer * self.steer_ratio)
