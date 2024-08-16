@@ -33,15 +33,17 @@ class RobotController:
         # Set up publishers
         self.navic_rel_plate = rospy.Publisher("navic_rel_plate", PoseWithCovarianceStamped, queue_size=1)
         self.navic_publisher = rospy.Publisher("/scanlink_control", ScanlinkControl, queue_size=1)
-        self.probe_wp_publisher = rospy.Publisher("probe_target", PoseWithCovarianceStamped, queue_size=1)
         # Set up subscriber definition & rate
         self.timer_navic_update = rospy.Timer(rospy.Duration(1.0/25.0), self.update_speed_callback)
+        # Set up tf publishers for waypoints
+        self.probe_wp_broadcaster = tf2_ros.TransformBroadcaster()
+        self.navic_wp_broadcaster = tf2_ros.TransformBroadcaster()
+        self.probe_target_transformStamped = geometry_msgs.msg.TransformStamped()
+        self.navic_target_transformStamped = geometry_msgs.msg.TransformStamped()
         # Initialise variables
         self.speed = 0
         self.steer = 0
 
-        self.probe_wp_broadcaster = tf2_ros.TransformBroadcaster()
-        self.probe_target_transformStamped = geometry_msgs.msg.TransformStamped()
         self.trans = TransformStamped()
         self.trans_probe = TransformStamped()
         self.trans_probe_2 = TransformStamped()
