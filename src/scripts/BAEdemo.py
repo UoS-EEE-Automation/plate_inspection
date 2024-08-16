@@ -204,9 +204,9 @@ class RobotController:
                     rospy.logdebug("Waypoint " + str(self.insp_stage) + " reached... Approaching sample....")
 
                     # Calculate transform between Meca base and probe start waypoint, this is fed through to the robot controller                    
-                    self.trans_probe = self.tfBuffer.lookup_transform("probe_target", "meca_base_link", rospy.Time())
-                    self.trans_probe_2 = self.tfBuffer.lookup_transform("meca_base_link", "probe_target", rospy.Time())
-                    # rospy.logdebug(self.trans_probe)
+                    self.trans_probe = self.tfBuffer.lookup_transform("probe_target", "meca_base_link", rospy.Time()) # Provides correct angle
+                    self.trans_probe_2 = self.tfBuffer.lookup_transform("meca_base_link", "probe_target", rospy.Time()) # Provides correct translation
+
                     target_eul = transforms3d.euler.quat2euler(
                         [
                         self.trans_probe.transform.rotation.w,
@@ -228,15 +228,6 @@ class RobotController:
                         target_eul[1],
                         target_eul[2]
                         ]
-
-                    # probe_target_pose = [
-                    #     self.trans_probe.transform.translation.x*1000-20,#-125, # Convert from m to mm
-                    #     self.trans_probe.transform.translation.y*1000,
-                    #     self.trans_probe.transform.translation.z*1000,
-                    #     -90, # Convert from rad to deg
-                    #     0,
-                    #     -90
-                    #     ]
                     
                     goal.scan_start = probe_target_pose
                     self.act_client.send_goal(goal)
