@@ -262,7 +262,7 @@ class RobotController:
         for i in range(1,4,1):
             if i == 1:
                 self.navic_wp = [+240+260*(i-1), -419-138.3, 0, 0, 0, 180]
-                self.probe_wp = [+240-53.19-20+125+260*(i-1), -180, 0, 0, 0, 90]
+                self.probe_wp = [+240-53.19-20+125+260*(i-1), -170, 0, 0, 0, 90]
             else:
                 self.navic_wp = numpy.vstack(
                     [
@@ -282,7 +282,7 @@ class RobotController:
                     self.probe_wp,
                     [
                         +240-53.19-20+125+260*(i-1), 
-                        -180, 
+                        -170, 
                         0, 
                         0, 
                         0, 
