@@ -224,13 +224,14 @@ class RobotController:
 
                     # Send Action to conduct scan
                     goal = scanGoal()
+                    goal.scan_type = 0
 
                     probe_target_pose = [
                         self.trans_probe_2.transform.translation.x*1000-20, # Convert from m to mm
                         self.trans_probe_2.transform.translation.y*1000,
                         self.trans_probe_2.transform.translation.z*1000,
                         target_eul[0], # Convert from rad to deg
-                        target_eul[1],
+                        0, #target_eul[1] We want to set this value ourself
                         target_eul[2]
                         ]
                     
