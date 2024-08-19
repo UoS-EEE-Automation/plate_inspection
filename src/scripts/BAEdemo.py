@@ -182,8 +182,13 @@ class RobotController:
 
                 if navic_x > self.navic_wp[-self.insp_stage][0] and self.stop == 0:
                     self.speed = 0.5
-                    if abs(navic_x - self.navic_wp[-self.insp_stage][0]) < 100:
-                        self.speed = 0.2
+                    # if abs(navic_x - self.navic_wp[-self.insp_stage][0]) < 100:
+                    #     self.speed = 0.2
+                    if abs(navic_x - self.navic_wp[-self.insp_stage][0]) <= 100 and abs(navic_x - self.navic_wp[-self.insp_stage][0]) > 10:
+                        self.speed = abs(navic_x - self.navic_wp[-self.insp_stage][0])/100 * self.speed
+                    elif abs(navic_x - self.navic_wp[-self.insp_stage][0]) < 10:
+                        self.speed = 0.05
+
                     self.steer = theta_err/-15
                     if abs(self.steer) > 0.8:
                         if self.steer < 0:
