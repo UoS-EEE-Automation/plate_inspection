@@ -5,6 +5,8 @@
 #
 # The amount of time we want to wait
 float32[] scan_start
+# The scan we are running, 0 - stop & scan, 1 - Continuous Scan, ...
+uint8 scan_type
 ---
 # Part 2: the result, to be sent by the server upon completion
 #
