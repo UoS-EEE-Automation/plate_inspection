@@ -224,7 +224,6 @@ class RobotController:
 
                     # Send Action to conduct scan
                     goal = scanGoal()
-                    goal.scan_type = 0
 
                     probe_target_pose = [
                         self.trans_probe_2.transform.translation.x*1000-20, # Convert from m to mm
