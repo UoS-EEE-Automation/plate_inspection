@@ -174,30 +174,30 @@ class RobotController:
                 navic_skew = euler_from_quaternion([navic_qx, navic_qy, navic_qz, navic_qw])
                 navic_yaw = (navic_skew[2] * 180/math.pi) % 360 - 180
                 # Calculate skew based upon point 200mm in front of crawler:
-                target_skew = math.atan2(self.navic_wp.poses[0].position.y - navic_y, - 200) * 180/math.pi  % 360 - 180
+                target_skew = math.atan2(navic_target_y - navic_y, - 200) * 180/math.pi  % 360 - 180
                 theta_err = (target_skew - navic_yaw) 
 
-                if navic_x > self.navic_wp.poses[0].position.x and self.stop == 0:
+                if navic_x > navic_target_x and self.stop == 0:
                     self.speed = 0.5
-                    if abs(navic_x - self.navic_wp.poses[0].position.x) < 100:
-                        self.speed = 0.2
+                    if abs(navic_x - navic_target_x) <= 100 and abs(navic_x - navic_target_x) > 10:
+                        self.speed = abs(navic_x - navic_target_x)/100 * self.speed
+                    elif abs(navic_x - navic_target_x) < 10:
+                        self.speed = 0.05
+
                     self.steer = theta_err/-15
                     if abs(self.steer) > 0.8:
                         if self.steer < 0:
                             self.steer = -0.8
                         elif self.steer > 0:
                             self.steer = 0.8
-                    # print("Moving forward...   Steer: " + str(self.steer*self.steer_ratio))
                     rospy.logdebug("Moving forward...   Speed: " + str(self.speed*self.speed_ratio) + "   Steer: " + str(self.steer*self.steer_ratio))
 
-                elif navic_x <= self.navic_wp.poses[0].position.x and self.stop == 0:
+                elif navic_x <= navic_target_x and self.stop == 0:
                     self.speed = 0
                     self.steer = 0
                     self.stop = 1
-                    # print("Stopping...")
                     rospy.logdebug("Stopping...")
                 else:
-                    # print("Waypoint " + str(self.insp_stage) + " reached... Pausing for 3s.")
                     rospy.logdebug("Waypoint " + str(self.insp_stage) + " reached... Approaching sample....")
 
                     # Calculate transform between Meca base and probe start waypoint, this is fed through to the robot controller                    
