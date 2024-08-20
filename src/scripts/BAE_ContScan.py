@@ -19,7 +19,7 @@ from plate_inspection.msg import scanAction, scanGoal, scanResult, scanFeedback
 import time
 import numpy
 import math
-from geometry_msgs.msg import Pose, PoseArray
+from geometry_msgs.msg import Pose, PoseArray, Twist
 
 
 class RobotController:
@@ -43,6 +43,8 @@ class RobotController:
         # Set up publisher for waypoint arrays
         self.probe_wp_publisher = rospy.Publisher('probe_targets', PoseArray)
         self.navic_wp_publisher = rospy.Publisher('navic_targets', PoseArray)
+        # Set up publisher for Meca velocity commands:
+        self.meca_cmd_vel_publisher = rospy.Publisher('meca_vel_cmd', Twist)
         # Initialise variables
         self.speed = 0
         self.steer = 0
@@ -164,9 +166,9 @@ class RobotController:
             navic_qw = self.trans.transform.rotation.w
 
             
-            navic_target_x = self.navic_wp.poses[0].position.x
-            navic_target_y = self.navic_wp.poses[0].position.y
-            navic_target_z = self.navic_wp.poses[0].position.z
+            navic_target_x = self.navic_wp.poses[0].position.x*1000
+            navic_target_y = self.navic_wp.poses[0].position.y*1000
+            navic_target_z = self.navic_wp.poses[0].position.z*1000
 
             if self.insp_stage in range(1,4):
 
@@ -216,9 +218,10 @@ class RobotController:
 
                     # Send Action to conduct scan
                     goal = scanGoal()
-
+                    goal.scan_type = 1
+                    
                     probe_target_pose = [
-                        self.trans_probe_2.transform.translation.x*1000-20, # Convert from m to mm
+                        self.trans_probe_2.transform.translation.x*1000-20, # Convert from m to mm and apply meca offset
                         self.trans_probe_2.transform.translation.y*1000,
                         self.trans_probe_2.transform.translation.z*1000,
                         target_eul[0], # Convert from rad to deg
@@ -295,6 +298,7 @@ class RobotController:
         scanlink_message.speed = int(self.speed * self.speed_ratio)
         scanlink_message.steer = int(self.steer * self.steer_ratio)
         self.navic_publisher.publish(scanlink_message)
+        self.meca_cmd_vel_publisher.publish(self.meca_cmd_vel)
 
 
 if __name__ == '__main__':
