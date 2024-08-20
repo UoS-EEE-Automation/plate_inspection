@@ -12,6 +12,7 @@ find_package(catkin REQUIRED COMPONENTS
   rospy
   std_msgs
   actionlib_msgs
+  geometry_msgs
 )
 
 ## System dependencies are found with CMake's conventions
@@ -65,6 +66,9 @@ find_package(catkin REQUIRED COMPONENTS
 add_action_files(
   DIRECTORY action
   FILES scan.action
+  FILES scan_approach.action
+  FILES scan_cont.action
+  FILES scan_lift.action
 )
 
 # Generate added messages and services with any dependencies listed here
@@ -72,6 +76,7 @@ generate_messages(
   DEPENDENCIES
   actionlib_msgs
   std_msgs
+  geometry_msgs
 )
 
 ################################################

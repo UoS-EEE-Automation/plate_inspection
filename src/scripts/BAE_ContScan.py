@@ -63,19 +63,28 @@ class RobotController:
         self.navic_wp = PoseArray()
         self.probe_wp = PoseArray()
         self.no_wp = 46
-        # self.scan_length = 900
-        # self.navic_wp = [[0 for col in range(6)] for row in range(self.no_wp)]
-        # self.probe_wp = [[0 for col in range(6)] for row in range(self.no_wp)]
 
         self.count = 0
 
         self.insp_stage = 1
         self.stop = 0
 
+        self.meca_cmd_vel = Twist()
+
         # Create action client
         self.act_client = actionlib.SimpleActionClient('scan', scanAction)
         self.act_client.wait_for_server()
         self.scan_start = Pose()
+        # Create action client
+        self.act_client = actionlib.SimpleActionClient('cont_scan', scanAction)
+        self.act_client.wait_for_server()
+        self.scan_start = Pose()
+
+        # Create action client
+        self.act_client = actionlib.SimpleActionClient('scan', scanAction)
+        self.act_client.wait_for_server()
+        self.scan_start = Pose()
+
 
     def vive_plate_callback(self, input):
         self.plate_pose = input
