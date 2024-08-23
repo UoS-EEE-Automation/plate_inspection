@@ -1,10 +1,10 @@
 <launch>
 
     <!-- Node for connecting and controlling to Meca500 -->
-    <!-- <node name="meca_node" pkg="strath_meca_control" type="robot_controller.py"/>   -->
+    <node name="meca_node" pkg="strath_meca_control" type="robot_controller.py"/>  
     
     <!-- node for connecting to navic -->
-    <!-- <node name="navic_node" pkg="navic_driver" type="navic_node" output="screen"/> -->
+    <node name="navic_node" pkg="navic_driver" type="navic_node" output="screen"/>
   
     <!-- script for reading vive postion and publishing command to Navic-->
     <node pkg="plate_inspection" name="ContScan_demo" type="BAE_ContScan.py"/>
