@@ -69,6 +69,8 @@ add_action_files(
   FILES scan_approach.action
   FILES scan_cont.action
   FILES scan_lift.action
+  FILES scan_cont_navic.action
+
 )
 
 # Generate added messages and services with any dependencies listed here

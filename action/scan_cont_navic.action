@@ -3,8 +3,8 @@
 #
 # Part 1: the goal, to be sent by the client
 #
-# The amount of time we want to wait
-float32[] scan_start
+geometry_msgs/PoseArray navic_targets
+# string navic_targets_topic_name
 ---
 # Part 2: the result, to be sent by the server upon completion
 #

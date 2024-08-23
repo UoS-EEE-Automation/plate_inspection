@@ -2,7 +2,9 @@
 # result, and the feedback.
 #
 # Part 1: the goal, to be sent by the client
+#
 geometry_msgs/PoseArray probe_targets
+# string probe_targets_topic_name
 ---
 # Part 2: the result, to be sent by the server upon completion
 #
