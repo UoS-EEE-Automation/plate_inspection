@@ -1,0 +1,37 @@
+<launch>
+
+  <!-- Node for connecting and controlling to Meca500 -->
+  <node name="meca_node" pkg="strath_meca_control" type="robot_controller.py"/>  
+  
+  <!-- script for reading vive postion and publishing command to Navic-->
+  <node pkg="plate_inspection" name="waypoint_demo" type="BAE_StatScan.py"/>
+
+</launch> 
+
+<!-- <group ns="vive"> -->
+  <!-- Use URDF model for navic and meca -->
+  <!-- <arg name="model" /> -->
+     <!-- <param name="robot_description" command="$(find xacro)/xacro '$(find system_description)/urdf/system_description.urdf.xacro'"/> -->
+
+  <!-- <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" /> -->
+
+  <!-- <node name="rviz" pkg="rviz" type="rviz" args="-d $(find system_description)/rviz/default.rviz" /> -->
+
+  <!-- Node for connecting and controlling to Meca500 -->
+  <!-- <node name="meca_node" pkg="strath_meca_control" type="robot_controller.py"/> -->
+
+  <!-- node for connecting to navic -->
+  <!-- <node name="navic_node" pkg="navic_driver" type="navic_node" output="screen" /> -->
+
+  <!-- Nodes for vive tracker -->
+  <!-- <node pkg="vive_tracker" name="vive_world" type="vive_world.py" output="screen"/> -->
+  <!-- <node pkg="vive_tracker" name="vive_tracker" type="vive_tracker.py" output="screen"/> -->
+  <!-- <node pkg="vive_tracker" name="vive_tracker_filter" type="vive_filter.py" output="screen"/> -->
+
+  <!-- Nodes for tracking filtered vive sensor data and matching to urdf model -->
+  <!-- <node pkg="tf2_ros" name="vive_link_broadcaster" type="static_transform_publisher" args="-0.085 0.053 -0.200 -1.5718 0 0 LHR_EA821C01_pose_filt navic_link"/> -->
+  <!-- <node pkg="tf2_ros" name="vive_plate_link_broadcaster" type="static_transform_publisher" args="0.0 0.0 -0.01 0.0 0.0 0.0 LHR_6727695C_pose_filt sample_link"/> -->
+
+  <!-- script for reading vive postion and publishing command to Navic-->
+  <!-- <node pk/g="plate_inspection" name="waypoint_demo" type="BAEdemo.py"/> -->
+<!-- </group> -->
