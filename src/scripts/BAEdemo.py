@@ -24,22 +24,6 @@ from geometry_msgs.msg import Pose
 
 class RobotController:
     def __init__(self):
-        # Set up subscribers
-        self.vive_pose_plate = rospy.Subscriber("/vive/LHR_6727695C_pose_filt", PoseWithCovarianceStamped , self.vive_plate_callback, queue_size=1)        
-        self.vive_pose_navic = rospy.Subscriber("/vive/LHR_EA821C01_pose_filt", PoseWithCovarianceStamped , self.waypoint_navic_callback, queue_size=1)
-        # Set up tf listeners
-        self.tfBuffer = tf2_ros.Buffer()
-        self.listener = tf2_ros.TransformListener(self.tfBuffer)
-        # Set up publishers
-        self.navic_rel_plate = rospy.Publisher("navic_rel_plate", PoseWithCovarianceStamped, queue_size=1)
-        self.navic_publisher = rospy.Publisher("/scanlink_control", ScanlinkControl, queue_size=1)
-        # Set up subscriber definition & rate
-        self.timer_navic_update = rospy.Timer(rospy.Duration(1.0/25.0), self.update_speed_callback)
-        # Set up tf publishers for waypoints
-        self.probe_wp_broadcaster = tf2_ros.TransformBroadcaster()
-        self.navic_wp_broadcaster = tf2_ros.TransformBroadcaster()
-        self.probe_target_transformStamped = geometry_msgs.msg.TransformStamped()
-        self.navic_target_transformStamped = geometry_msgs.msg.TransformStamped()
         # Initialise variables
         self.speed = 0
         self.steer = 0
@@ -65,6 +49,26 @@ class RobotController:
         self.insp_stage = 1
         self.stop = 0
 
+        self.debug_msg_count = 0
+
+        # Set up tf listeners
+        self.tfBuffer = tf2_ros.Buffer()
+        self.listener = tf2_ros.TransformListener(self.tfBuffer)
+        # Set up publishers
+        self.navic_rel_plate = rospy.Publisher("navic_rel_plate", PoseWithCovarianceStamped, queue_size=1)
+        self.navic_publisher = rospy.Publisher("/scanlink_control", ScanlinkControl, queue_size=1)
+        # Set up subscriber definition & rate
+        self.timer_navic_update = rospy.Timer(rospy.Duration(1.0/25.0), self.update_speed_callback)
+        # Set up tf publishers for waypoints
+        self.probe_wp_broadcaster = tf2_ros.TransformBroadcaster()
+        self.navic_wp_broadcaster = tf2_ros.TransformBroadcaster()
+        self.probe_target_transformStamped = geometry_msgs.msg.TransformStamped()
+        self.navic_target_transformStamped = geometry_msgs.msg.TransformStamped()
+
+        # Set up subscribers
+        self.vive_pose_plate = rospy.Subscriber("/vive/LHR_6727695C_pose_filt", PoseWithCovarianceStamped , self.vive_plate_callback, queue_size=1)        
+        self.vive_pose_navic = rospy.Subscriber("/vive/LHR_EA821C01_pose_filt", PoseWithCovarianceStamped , self.waypoint_navic_callback, queue_size=1)
+        
         # Create action client
         self.act_client = actionlib.SimpleActionClient('scan', scanAction)
         self.act_client.wait_for_server()
