@@ -20,7 +20,7 @@ import time
 import numpy
 import math
 from geometry_msgs.msg import Pose
-
+from inputimeout import inputimeout
 
 class RobotController:
     def __init__(self):
@@ -59,7 +59,7 @@ class RobotController:
 
         # Create action client
         self.act_client = actionlib.SimpleActionClient('scan', scanAction)
-        self.act_client.wait_for_server()
+        # self.act_client.wait_for_server()
         self.scan_start = Pose()
 
         # Set up subscribers
@@ -71,29 +71,7 @@ class RobotController:
     def vive_plate_callback(self, input):
         self.plate_pose = input
         
-        if self.waypoints_generated == 0:
-            self.generate_waypoints()
-
-        if self.waypoints_generated == 1:
-            ################################################################## Publish the current probe target frame
-            self.probe_target_transformStamped.header.stamp = rospy.Time.now()
-            self.probe_target_transformStamped.header.frame_id = "LHR_6727695C_pose_filt"
-            self.probe_target_transformStamped.child_frame_id = "probe_target"
-
-            probe_wp_q = transforms3d.euler.euler2quat(
-                self.probe_wp[3]*math.pi/180, 
-                self.probe_wp[4]*math.pi/180, 
-                self.probe_wp[5]*math.pi/180
-                )
-
-            self.probe_target_transformStamped.transform.translation.x = float(self.probe_wp[0]/1000)
-            self.probe_target_transformStamped.transform.translation.y = float(self.probe_wp[1]/1000)
-            self.probe_target_transformStamped.transform.translation.z = float(self.probe_wp[2]/1000)
-
-            self.probe_target_transformStamped.transform.rotation.w = probe_wp_q[0]
-            self.probe_target_transformStamped.transform.rotation.x = probe_wp_q[1]
-            self.probe_target_transformStamped.transform.rotation.y = probe_wp_q[2]
-            self.probe_target_transformStamped.transform.rotation.z = probe_wp_q[3]
+        self.generate_waypoints()
 
     def waypoint_navic_callback(self, input):
         self.read_navic_position()
@@ -117,8 +95,12 @@ class RobotController:
             self.start_scan()
 
     def start_scan(self):
+        try:
+            inputimeout(prompt='Press enter to start scan:', timeout=1)
+        except:
+            return
         # Wait for user to start scan
-        input("Press Enter to start scan...")
+        # input("Press Enter to start scan...")
         # Calculate transform between Meca base and probe start waypoint, this is fed through to the robot controller                    
         self.trans_probe = self.tfBuffer.lookup_transform("probe_target", "meca_base_link", rospy.Time()) # Provides correct angle
         self.trans_probe_2 = self.tfBuffer.lookup_transform("meca_base_link", "probe_target", rospy.Time()) # Provides correct translation
@@ -155,18 +137,33 @@ class RobotController:
         rospy.sleep(3)
                 
     def generate_waypoints(self):
-        self.probe_wp = [80
-        , -145, 0, 0, 0, 90]
+        self.probe_wp = [80, -145, 0, 0, 0, 90]
 
-        self.waypoints_generated = 1
+        ################################################################## Publish the current probe target frame
+        self.probe_target_transformStamped.header.stamp = rospy.Time.now()
+        self.probe_target_transformStamped.header.frame_id = "LHR_6727695C_pose_filt"
+        self.probe_target_transformStamped.child_frame_id = "probe_target"
+
+        probe_wp_q = transforms3d.euler.euler2quat(
+            self.probe_wp[3]*math.pi/180, 
+            self.probe_wp[4]*math.pi/180, 
+            self.probe_wp[5]*math.pi/180
+            )
+
+        self.probe_target_transformStamped.transform.translation.x = float(self.probe_wp[0]/1000)
+        self.probe_target_transformStamped.transform.translation.y = float(self.probe_wp[1]/1000)
+        self.probe_target_transformStamped.transform.translation.z = float(self.probe_wp[2]/1000)
+
+        self.probe_target_transformStamped.transform.rotation.w = probe_wp_q[0]
+        self.probe_target_transformStamped.transform.rotation.x = probe_wp_q[1]
+        self.probe_target_transformStamped.transform.rotation.y = probe_wp_q[2]
+        self.probe_target_transformStamped.transform.rotation.z = probe_wp_q[3]
         
+        self.waypoints_generated = 1
+
     def update_speed_callback(self, timer_crawler):
         if self.waypoints_generated == 1:
             self.probe_wp_broadcaster.sendTransform(self.probe_target_transformStamped)
-        scanlink_message = ScanlinkControl()
-        scanlink_message.speed = int(self.speed * self.speed_ratio)
-        scanlink_message.steer = int(self.steer * self.steer_ratio)
-        self.navic_publisher.publish(scanlink_message)
 
 
 if __name__ == '__main__':
