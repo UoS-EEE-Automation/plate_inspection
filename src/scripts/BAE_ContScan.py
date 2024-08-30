@@ -321,9 +321,9 @@ class RobotController:
                 # elif steer < -0.20:
                 #     steer = -0.20
 
-                speed = 0.1
+                self.speed = 0.1
                 if self.debug_msg_count%50 == 0:
-                    rospy.logdebug("Speed: {}; Steer: {}".format(int(speed * self.speed_ratio), int(steer * self.steer_ratio)))
+                    rospy.logdebug("Speed: {}; Steer: {}".format(int(self.speed * self.speed_ratio), int(steer * self.steer_ratio)))
 
                 if navic_xyz[0] - navic_target_xyz.pose.position.x*1000 < 10:
                     navic_targets.poses = np.delete(navic_targets.poses, (0), axis=0)
@@ -347,7 +347,7 @@ class RobotController:
             self.debug_msg_count += 1
             ################################## Publish Navic commands ##################################
             scanlink_message = ScanlinkControl()
-            scanlink_message.speed = int(speed * self.speed_ratio)
+            scanlink_message.speed = int(self.speed * self.speed_ratio)
             scanlink_message.steer = int(steer * self.steer_ratio)
             self.navic_publisher.publish(scanlink_message)
 
