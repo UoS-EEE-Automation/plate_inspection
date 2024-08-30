@@ -77,37 +77,12 @@ class RobotController:
     def vive_plate_callback(self, input):
         self.plate_pose = input
 
-        # if self.count >= 2:
-        if len(self.plate_pose_buffer) == 0:
-            self.plate_pose_buffer = [input.pose.pose.position.x, input.pose.pose.position.y, input.pose.pose.position.z]
-        elif len(self.plate_pose_buffer) == 3:
-            self.plate_pose_buffer = numpy.vstack(
-                [
-                    self.plate_pose_buffer, 
-                    [
-                        input.pose.pose.position.x,
-                        input.pose.pose.position.y,
-                        input.pose.pose.position.z,
-                    ]
-                ]
-            )
-        else:
-            self.plate_pose_buffer = numpy.delete(self.plate_pose_buffer, (0), axis=0)
-            self.plate_pose_buffer = numpy.vstack(
-                [
-                    self.plate_pose_buffer,
-                    [
-                        input.pose.pose.position.x,
-                        input.pose.pose.position.y,
-                        input.pose.pose.position.z,
-                    ]
-                ]
-            )
-            if all(self.plate_pose_buffer[0]) == all(self.plate_pose_buffer[1]) and self.waypoints_generated == 0:
-                self.generate_waypoints(self, self.plate_pose_buffer[1])
+        
+        if self.waypoints_generated == 0:
+            self.generate_waypoints()
 
         if self.waypoints_generated == 1 and self.insp_stage < 4:
-            # Publish the current probe target frame
+            ################################################################## Publish the current probe target frame
             self.probe_target_transformStamped.header.stamp = rospy.Time.now()
             self.probe_target_transformStamped.header.frame_id = "LHR_6727695C_pose_filt"
             self.probe_target_transformStamped.child_frame_id = "probe_target"
